@@ -73,7 +73,7 @@ def update(id):
         error = None
 
         if not title:
-            error = 'Title is required'
+            error = 'Title is required.'
 
         if error is not None:
             flash(error)
@@ -94,7 +94,6 @@ def update(id):
 def delete(id):
     post = get_post(id)
     db = get_db()
-    print('ID -  {}'.format(post['id']))
     db.execute('DELETE FROM post WHERE id = ?', (post['id'],))
     db.commit()
     return redirect(url_for('blog.index'))
