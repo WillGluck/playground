@@ -10,15 +10,21 @@ def test_index(client, auth):
     auth.login()
     response = client.get('/')
     assert b'Log Out' in response.data
-    #assert b'test title' in response.data
     assert b'by test on 2018-01-01' in response.data
+    assert b'test\nbody' in response.data
+    assert b'href="/1/update"' in response.data
+
+def test_detail(client, auth):    
+    auth.login()
+    response = client.get('/1')
+    assert b'by test on 2018-01-01'
     assert b'test\nbody' in response.data
     assert b'href="/1/update"' in response.data
 
 @pytest.mark.parametrize('path', (
     '/create',
     '/1/update',
-    '/1/delete'
+    '/1/delete',
 ))
 def test_login_required(client, path):
     response = client.post(path)
@@ -37,7 +43,8 @@ def test_author_required(app, client, auth):
 
 @pytest.mark.parametrize('path', (
     '/2/update',
-    '/2/delete'
+    '/2/delete',
+    '/2'
 ))
 def test_exists_required(client, auth, path):
     auth.login()
