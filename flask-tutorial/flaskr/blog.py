@@ -12,8 +12,11 @@ bp = Blueprint('blog', __name__)
 def index():
     db = get_db()
     posts = db.execute(
-        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username'
-        ' FROM post p JOIN USER u ON p.author_id = u.id'
+        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, count(r.post_id) as reaction_count'
+        ' FROM post p'
+        ' JOIN user u ON p.author_id = u.id'
+        ' LEFT JOIN reaction r on r.user_id = u.id and r.post_id = p.id'
+        ' GROUP BY p.id, p.title, p.body, p.created, p.author_id, u.username'
         ' ORDER BY created DESC'
     ).fetchall()
     return render_template('blog/index.html', posts=posts)
@@ -46,10 +49,12 @@ def create():
 def get_post(id, check_author=True):
     db = get_db()
     post = db.execute(
-        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username'
-        ' FROM post p JOIN user u ON p.author_id = u.id'
-        ' WHERE p.id = ?',
-        (id,)
+        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, r.post_id IS null AS reacted'
+        ' FROM post p'
+        ' JOIN user u ON p.author_id = u.id'
+        ' LEFT JOIN reaction r ON r.user_id = ?1 and r.post_id = ?2'
+        ' WHERE p.id = ?2',
+        ( g.user['id'], id,)
     ).fetchone()
 
     if post is None:
@@ -60,6 +65,22 @@ def get_post(id, check_author=True):
 
     #401 Unauthorized is redirected to index
     return post
+
+def get_reactions(post_id):
+    return get_db().execute(
+        'SELECT u.username'
+        ' FROM reaction r JOIN user u ON r.user_id = u.id and r.post_id = ?1'
+        ' WHERE r.post_id = ?1',
+        (post_id,)
+    ).fetchall()
+
+def get_comments(post_id):
+    return get_db().execute(
+        'SELECT c.id, c.body, c.user_id, u.username'
+        ' FROM comment c JOIN user u ON c.user_id = u.id'
+        ' WHERE c.post_id = ?',
+        (post_id,)
+    ).fetchall()
 
 @bp.route('/<int:id>/update', methods=('GET', 'POST'))
 @login_required
@@ -101,4 +122,6 @@ def delete(id):
 @bp.route('/<int:id>')
 def detail(id):
     post = get_post(id, check_author=False)
-    return render_template('blog/detail.html', post=post)
+    comments = get_comments(post['id'])
+    reactions = get_reactions(post['id'])
+    return render_template('blog/detail.html', post=post, comments=comments, reactions=reactions)

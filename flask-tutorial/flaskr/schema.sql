@@ -1,5 +1,7 @@
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS post;
+DROP TABLE IF EXISTS reaction;
+DROP TABLE IF EXISTS comment;
 
 CREATE TABLE user (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,4 +16,21 @@ CREATE TABLE post (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     FOREIGN KEY (author_id) REFERENCES user (id)
+);
+
+CREATE TABLE reaction (
+    post_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    PRIMARY KEY (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES post (id),
+    FOREIGN KEY (user_id) REFERENCES user (id)
+);
+
+CREATE TABLE comment (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    FOREIGN KEY (post_id) REFERENCES post (id),
+    FOREIGN KEY (user_id) REFERENCES user (id)
 );
