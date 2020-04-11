@@ -96,8 +96,13 @@ html {
     font-style: italic;
   }
   
-  .post .body {
+  .body {
     white-space: pre-line;
+  }
+
+  .infos {
+    color:white;
+    background-color: black;
   }
   
   .content:last-child {

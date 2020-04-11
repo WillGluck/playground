@@ -12,10 +12,11 @@ bp = Blueprint('blog', __name__)
 def index():
     db = get_db()
     posts = db.execute(
-        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, count(r.post_id) as reaction_count'
+        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, count(r.post_id) as reaction_count, count(c.post_id) as comment_count'
         ' FROM post p'
         ' JOIN user u ON p.author_id = u.id'
         ' LEFT JOIN reaction r on r.user_id = u.id and r.post_id = p.id'
+        ' LEFT JOIN comment c on c.post_id = p.id'
         ' GROUP BY p.id, p.title, p.body, p.created, p.author_id, u.username'
         ' ORDER BY created DESC'
     ).fetchall()
@@ -49,7 +50,7 @@ def create():
 def get_post(id, check_author=True):
     db = get_db()
     post = db.execute(
-        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, r.post_id IS null AS reacted'
+        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, r.post_id IS NOT NULL AS reacted'
         ' FROM post p'
         ' JOIN user u ON p.author_id = u.id'
         ' LEFT JOIN reaction r ON r.user_id = ?1 and r.post_id = ?2'
@@ -125,3 +126,46 @@ def detail(id):
     comments = get_comments(post['id'])
     reactions = get_reactions(post['id'])
     return render_template('blog/detail.html', post=post, comments=comments, reactions=reactions)
+
+@bp.route('/<int:id>/react', methods=['POST'])
+@login_required
+def react(id):
+    post = get_post(id)
+    reacted = post['reacted']
+    post_id = post['id']
+    user_id = g.user['id']
+
+    db = get_db()
+    if reacted == 0:
+        db.execute('INSERT INTO reaction (user_id, post_id) VALUES (?, ?)', (user_id, post_id,))
+    else:
+        db.execute('DELETE FROM reaction WHERE user_id = ? and post_id = ?', (user_id, post_id,))
+    db.commit()
+
+    return redirect(url_for('blog.index'))
+
+
+@bp.route('/<int:int>/comment', methods=['POST'])
+@login_required
+def comment(id):
+    
+    comment = request.form['comment']
+    post = get_post(id)
+    post_id = post['id']
+    user_id = g.user['id']
+    error = None
+
+    if comment is None:
+        error = "Comment text can't be empty"
+    
+    if error is None:
+        db = get_db()
+        db.execute(
+            'INSERT INTO comment (post_id, user_id, body) VALUES (?, ?, ?)',
+            (post_id, user_id, comment,)
+        )
+        db.commit()
+        return redirect(url_for('blog.index'))
+    else:
+        return render_template('blog/detail.html', post=post)
+    

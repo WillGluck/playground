@@ -20,6 +20,7 @@
                 {% endif %}
             </header>
             <p class="body">{{ post['body'] }}</p>
+            <div class="infos">Likes {{ post['reaction_count'] }} / Comments {{ post['comment_count'] }}</div>
         </article>            
         {% if not loop.last %}
             <hr>

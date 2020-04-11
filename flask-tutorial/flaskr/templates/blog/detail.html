@@ -9,5 +9,9 @@
 {% endblock %}
 
 {% block content %}
-    <p class="body" style="white-space: pre-line">{{ post['body'] }}</p>
+    <p class="body">{{ post['body'] }}</p>  
+    <p class=infos>Likes {{reactions|length }}</p>
+    <form method="POST" action="{{ url_for('blog.react', id=post['id']) }}">
+        <input type="submit" value="{% if post['reacted'] == 1 %}Unlike{% else %}Like{% endif %}">    
+    </form> 
 {% endblock %}
