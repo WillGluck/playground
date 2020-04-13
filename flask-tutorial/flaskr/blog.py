@@ -12,13 +12,13 @@ bp = Blueprint('blog', __name__)
 def index():
     db = get_db()
     posts = db.execute(
-        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, count(r.post_id) as reaction_count, count(c.post_id) as comment_count'
+        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, r.count reaction_count, c.count comment_count'
         ' FROM post p'
         ' JOIN user u ON p.author_id = u.id'
-        ' LEFT JOIN reaction r on r.user_id = u.id and r.post_id = p.id'
-        ' LEFT JOIN comment c on c.post_id = p.id'
+        ' LEFT JOIN (SELECT post_id, COUNT(user_id) count FROM reaction GROUP BY post_id) r ON r.post_id = p.id'
+        ' LEFT JOIN (select post_id, COUNT(id) count FROM comment GROUP BY post_id) c ON c.post_id = p.id'
         ' GROUP BY p.id, p.title, p.body, p.created, p.author_id, u.username'
-        ' ORDER BY created DESC'
+        ' ORDER BY p.created DESC'
     ).fetchall()
     return render_template('blog/index.html', posts=posts)
 
@@ -50,12 +50,11 @@ def create():
 def get_post(id, check_author=True):
     db = get_db()
     post = db.execute(
-        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username, r.post_id IS NOT NULL AS reacted'
+        'SELECT p.id, p.title, p.body, p.created, p.author_id, u.username'
         ' FROM post p'
         ' JOIN user u ON p.author_id = u.id'
-        ' LEFT JOIN reaction r ON r.user_id = ?1 and r.post_id = ?2'
-        ' WHERE p.id = ?2',
-        ( g.user['id'], id,)
+        ' WHERE p.id = ?',
+        ( id,)
     ).fetchone()
 
     if post is None:
@@ -77,9 +76,10 @@ def get_reactions(post_id):
 
 def get_comments(post_id):
     return get_db().execute(
-        'SELECT c.id, c.body, c.user_id, u.username'
+        'SELECT c.id, c.body, c.created, c.user_id, u.username'
         ' FROM comment c JOIN user u ON c.user_id = u.id'
-        ' WHERE c.post_id = ?',
+        ' WHERE c.post_id = ?'
+        ' ORDER BY created DESC',
         (post_id,)
     ).fetchall()
 
@@ -125,32 +125,42 @@ def detail(id):
     post = get_post(id, check_author=False)
     comments = get_comments(post['id'])
     reactions = get_reactions(post['id'])
-    return render_template('blog/detail.html', post=post, comments=comments, reactions=reactions)
+    reacted = False
+    if (g.user is not None):
+        for reaction in reactions:
+            if reaction['username'] == g.user['username']:
+                reacted = True
+                break
+    return render_template('blog/detail.html', post=post, comments=comments, reactions=reactions, reacted=reacted)
 
 @bp.route('/<int:id>/react', methods=['POST'])
 @login_required
 def react(id):
-    post = get_post(id)
-    reacted = post['reacted']
+    post = get_post(id, check_author=False)
     post_id = post['id']
     user_id = g.user['id']
 
     db = get_db()
-    if reacted == 0:
-        db.execute('INSERT INTO reaction (user_id, post_id) VALUES (?, ?)', (user_id, post_id,))
-    else:
+    reacted = db.execute(
+        'SELECT 1 FROM reaction WHERE post_id = ? AND user_id = ?',
+        (post_id, user_id)
+    ).fetchone() != None
+
+    if (reacted):
         db.execute('DELETE FROM reaction WHERE user_id = ? and post_id = ?', (user_id, post_id,))
+    else:
+        db.execute('INSERT INTO reaction (user_id, post_id) VALUES (?, ?)', (user_id, post_id,))
     db.commit()
 
     return redirect(url_for('blog.index'))
 
 
-@bp.route('/<int:int>/comment', methods=['POST'])
+@bp.route('/<int:id>/create_comment', methods=['POST'])
 @login_required
-def comment(id):
+def create_comment(id):
     
     comment = request.form['comment']
-    post = get_post(id)
+    post = get_post(id, check_author=False)
     post_id = post['id']
     user_id = g.user['id']
     error = None
@@ -167,5 +177,27 @@ def comment(id):
         db.commit()
         return redirect(url_for('blog.index'))
     else:
+        flash(error)
         return render_template('blog/detail.html', post=post)
     
+@bp.route('/<int:id>/delete_comment', methods=['POST'])
+@login_required
+def delete_comment(id):
+    
+    db = get_db()
+    comment = db.execute(
+        'SELECT * FROM comment WHERE id = ?',
+        (id,)
+    ).fetchone()
+
+    if comment is None:
+        abort(404, "Comment id {} doesn't exist.".format(id))
+    if comment['user_id'] != g.user['id']:
+        abort(403)
+
+    db.execute('DELETE FROM comment WHERE id = ?', (id,))
+    db.commit()
+
+    return redirect(url_for('blog.index'))
+        
+        

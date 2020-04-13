@@ -11,7 +11,35 @@
 {% block content %}
     <p class="body">{{ post['body'] }}</p>  
     <p class=infos>Likes {{reactions|length }}</p>
+    {% if g.user['id'] %}
     <form method="POST" action="{{ url_for('blog.react', id=post['id']) }}">
-        <input type="submit" value="{% if post['reacted'] == 1 %}Unlike{% else %}Like{% endif %}">    
+        <input type="submit" value="{% if reacted %}Unlike{% else %}Like{% endif %}">    
     </form> 
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('blog.create_comment', id=post['id']) }}">
+        <label for="comment">Comment</label>
+        <textarea name="comment" id="comment"></textarea>
+        <input type="submit" value="Send">        
+    </form>
+
+    {% for comment in comments %}
+        <article>
+            <header>
+                <div>
+                    <h3> by {{ comment['username'] }} on {{ comment['created'].strftime('%Y-%m-%d') }}</h3>
+                    <div>{{ comment['body'] }}</div>
+                </div>
+                {% if g.user['id'] == comment['user_id'] %}
+                    <form method="POST" action="{{ url_for('blog.delete_comment', id=comment['id']) }}">
+                        <input type="submit" value="Remover"/>
+                    </form>                    
+                {% endif %}
+            </header>
+        </article>         
+    {% if not loop.last %}
+        <hr>
+    {% endif %}
+    {% endfor %}
+
 {% endblock %}
