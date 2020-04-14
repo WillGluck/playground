@@ -5,4 +5,8 @@ VALUES
 
 INSERT INTO post (title, body, author_id, created)
 VALUES
-    ('test_title', 'test' || x'0a' || 'body', 1, '2018-01-01 00:00:00'); 
+    ('test_title', 'test' || x'0a' || 'body', 1, '2020-01-01 00:00:00'); 
+
+INSERT INTO comment (post_id, user_id, created, body)
+VALUES
+    (1, 1, '2020-01-01 00:00:00', 'comment');

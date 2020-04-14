@@ -10,21 +10,34 @@ def test_index(client, auth):
     auth.login()
     response = client.get('/')
     assert b'Log Out' in response.data
-    assert b'by test on 2018-01-01' in response.data
+    assert b'by test on 2020-01-01' in response.data
     assert b'test\nbody' in response.data
     assert b'href="/1/update"' in response.data
 
-def test_detail(client, auth):    
+def test_detail(client, auth): 
+
+    response = client.get('/1')
+    assert b'by test on 2020-01-01' in response.data
+    assert b'test\nbody' in response.data
+    assert b'href="/1/update"' not in response.data
+    assert b'href="/1/update"' not in response.data
+    assert b'id="send_comment"'  not in response.data
+    assert b'id="react_to_post"' not in response.data
+
     auth.login()
     response = client.get('/1')
-    assert b'by test on 2018-01-01'
-    assert b'test\nbody' in response.data
     assert b'href="/1/update"' in response.data
+    assert b'id="send_comment"'  in response.data
+    assert b'id="react_to_post"' in response.data
+
+
 
 @pytest.mark.parametrize('path', (
     '/create',
     '/1/update',
     '/1/delete',
+    '/1/react',
+    '/1/delete_comment'
 ))
 def test_login_required(client, path):
     response = client.post(path)
@@ -91,4 +104,9 @@ def test_delete(client, auth, app):
         post = db.execute('SELECT * FROM post WHERE id = 1').fetchone()
         assert post is None
 
+
+# def test_react(client, auth, app):
+
+
+# def test_comment(client, auth, app):
 
