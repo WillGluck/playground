@@ -12,16 +12,15 @@
     <p class="body">{{ post['body'] }}</p>  
     <p class=infos>Likes {{reactions|length }}</p>
     {% if g.user['id'] %}
-    <form method="POST" action="{{ url_for('blog.react', id=post['id']) }}">
+    <form id="react_to_post" method="POST" action="{{ url_for('blog.react', id=post['id']) }}">
         <input type="submit" value="{% if reacted %}Unlike{% else %}Like{% endif %}">    
     </form> 
-    {% endif %}
-
-    <form method="POST" action="{{ url_for('blog.create_comment', id=post['id']) }}">
+    <form id="send_comment" method="POST" action="{{ url_for('blog.create_comment', id=post['id']) }}">
         <label for="comment">Comment</label>
         <textarea name="comment" id="comment"></textarea>
         <input type="submit" value="Send">        
     </form>
+    {% endif %}
 
     {% for comment in comments %}
         <article>
