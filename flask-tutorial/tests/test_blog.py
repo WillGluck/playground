@@ -37,6 +37,7 @@ def test_detail(client, auth):
     '/1/update',
     '/1/delete',
     '/1/react',
+    '/1/create_comment',
     '/1/delete_comment'
 ))
 def test_login_required(client, path):
@@ -105,8 +106,50 @@ def test_delete(client, auth, app):
         assert post is None
 
 
-# def test_react(client, auth, app):
+def test_react(client, auth, app):
+    auth.login()
+    with app.app_context():
+        db = get_db()
+        reaction = db.execute('SELECT * FROM reaction WHERE post_id = 1').fetchone()
+        assert reaction is not None
 
+    client.post('/1/react')
+    with app.app_context():
+        db = get_db()
+        reaction = db.execute('SELECT * FROM reaction WHERE post_id = 1').fetchone()
+        assert reaction is None
 
-# def test_comment(client, auth, app):
+def test_create_comment_validation(client, auth, app):
+    auth.login()
+    response = client.post('/1/create_comment', data={'comment': ''})
+    assert response.status_code == 400
 
+def test_comment(client, auth, app):
+    auth.login()
+    client.get('/1/detail')
+    response = client.post('/1/create_comment', data={'comment': 'Test comment'})
+    assert response.headers['Location'] == 'http://localhost/'
+
+    with app.app_context():
+        db = get_db()
+        commentCount = db.execute('SELECT COUNT(*) FROM comment WHERE post_id = 1').fetchone()[0]
+        assert commentCount is 2
+
+def test_delete_comment_author_required(client, auth, app):
+    auth.login()    
+    with app.app_context():
+        db = get_db()
+        db.execute('UPDATE comment SET user_id = 2 WHERE id = 1')
+        db.commit()
+    assert client.post('/1/delete_comment').status_code == 403
+
+def test_delete_comment(client, auth, app):
+    auth.login()
+    with app.app_context():
+        db = get_db()
+        db.execute('UPDATE comment SET user_id = 1 WHERE id = 1')
+        db.commit()
+    assert client.post('/1/delete_comment').headers['Location'] == 'http://localhost/'
+    
+    with app.app_context():
+        assert get_db().execute('SELECT COUNT(*) FROM comment WHERE post_id = 1').fetchone()[0] == 0

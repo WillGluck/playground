@@ -163,22 +163,17 @@ def create_comment(id):
     post = get_post(id, check_author=False)
     post_id = post['id']
     user_id = g.user['id']
-    error = None
 
-    if comment is None:
-        error = "Comment text can't be empty"
+    if not comment:
+        abort(400, "Comment can't be null")
     
-    if error is None:
-        db = get_db()
-        db.execute(
-            'INSERT INTO comment (post_id, user_id, body) VALUES (?, ?, ?)',
-            (post_id, user_id, comment,)
-        )
-        db.commit()
-        return redirect(url_for('blog.index'))
-    else:
-        flash(error)
-        return render_template('blog/detail.html', post=post)
+    db = get_db()
+    db.execute(
+        'INSERT INTO comment (post_id, user_id, body) VALUES (?, ?, ?)',
+        (post_id, user_id, comment,)
+    )
+    db.commit()
+    return redirect(url_for('blog.index'))
     
 @bp.route('/<int:id>/delete_comment', methods=['POST'])
 @login_required

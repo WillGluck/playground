@@ -10,3 +10,7 @@ VALUES
 INSERT INTO comment (post_id, user_id, created, body)
 VALUES
     (1, 1, '2020-01-01 00:00:00', 'comment');
+
+INSERT INTO reaction (post_id, user_id)
+VALUES
+    (1, 1);
