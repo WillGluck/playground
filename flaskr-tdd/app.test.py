@@ -45,7 +45,7 @@ class FlaskrTestCase(unittest.TestCase):
     def test_empty_db(self):
         """Ensure database is blank."""
         response = self.client.get('/')
-        assert b'No entries here so far' in response.data
+        assert b'No entries yet. Add some!' in response.data
 
     def test_login_logout(self):
         """Test login and logout using helper functions."""
@@ -55,7 +55,7 @@ class FlaskrTestCase(unittest.TestCase):
         )
         assert b'You were logged in'in response.data
         response = self.logout()
-        assert b'You were logged ou' in response.data
+        assert b'You were logged out' in response.data
         response = self.login(
             app.app.config['USERNAME'] + 'x',
             app.app.config['PASSWORD']
@@ -77,8 +77,8 @@ class FlaskrTestCase(unittest.TestCase):
             title='<Hello>',
             text='<strong>HTML</string> allowed here'
         ), follow_redirects=True)
-        assert b'No entries here so far' not in response.data
-        assert b'&alt;Hello&gt;' in response.data
+        assert b'No entries yet. Add some!' not in response.data
+        self.assertIn(b'&lt;Hello&gt;', response.data)
         assert b'<strong>HTML</string> allowed here' in response.data
         
 if __name__ == '__main__':

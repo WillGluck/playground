@@ -36,8 +36,8 @@
             {% endif %}
 
             <ul class="entries">
-                {% for entrie in entries %}
-                    <li><h2>{{ entrie.title }}</h2>{{ entry.text|safe }}</li>
+                {% for entry in entries %}
+                    <li><h2>{{ entry.title }}</h2>{{ entry.text|safe }}</li>
                 {% else %}  
                     <li><em>No entries yet. Add some!</em></li>
                 {% endfor %}
