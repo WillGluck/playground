@@ -1,6 +1,7 @@
 import os
 import unittest
 import tempfile
+import json
 
 import app
 
@@ -80,6 +81,12 @@ class FlaskrTestCase(unittest.TestCase):
         assert b'No entries yet. Add some!' not in response.data
         self.assertIn(b'&lt;Hello&gt;', response.data)
         assert b'<strong>HTML</string> allowed here' in response.data
+
+    def test_delete_message(self):
+        """Ensure the messages are being deleted"""
+        rv = self.client.get('/delete/1')
+        data = json.loads((rv.data).decode('utf-8'))
+        self.assertEquals(data['status'], 1)
         
 if __name__ == '__main__':
     unittest.main()

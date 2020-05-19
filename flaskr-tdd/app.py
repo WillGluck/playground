@@ -62,7 +62,7 @@ def login():
     
     return render_template('login.html', error=error)
 
-@app.route('/logout', methods=['POST'])
+@app.route('/logout', methods=['GET'])
 def logout():
     """User logout/authentication/session management."""
     session.pop('logged_in', None)
@@ -82,6 +82,19 @@ def add_entry():
     db.commit()
     flash('New entry was successfully posted')
     return redirect(url_for('index'))
+
+@app.route('/delete/<int:post_id>', methods=['GET'])
+def delete_entry(post_id):
+    """Delete post from database"""
+    result = {'status': 0, 'message': 'Error'}
+    try:
+        db = get_db()
+        db.execute('DELETE FROM entries WHERE id = ?', (post_id,))
+        db.commit()
+        result = {'status': 1, 'message': 'Post Deleted'}
+    except Exception as e:
+        result = {'status': 0, 'message': repr(e)}
+    return jsonify(result)
 
 if __name__ == '__main__':
     init_db()
